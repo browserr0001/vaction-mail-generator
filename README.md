@@ -10,6 +10,6 @@ smtplib<br />
 pip install if not available<br />
 # Process
 First install all the essentials as mentioned above<br />
-Next optain the google app key [Reference Link](https://www.youtube.com/watch?v=hXiPshHn9Pw)
+Next optain the google app key [Reference Link](https://www.youtube.com/watch?v=hXiPshHn9Pw)<br />
 Run the file on VS code or on cmd
 
