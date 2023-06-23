@@ -5,74 +5,67 @@ import imaplib
 import email
 import traceback
 
-GMAIL_USERNAME = "your_mail_id"
-GMAIL_PASSWORD = "kwvorykgwhylcmqe"
+username = "test0912mail@gmail.com"
+password = "kwvorykgwhylcmqe"
 IMAP_HOST = "imap.gmail.com"
 IMAP_PORT = 993
-MIN_INTERVAL = 45
-MAX_INTERVAL = 120
+min = 45
+min = 120
 
-replied_emails = set()  # Set to store replied email IDs
+replied_emails = set() 
 
 def check_new_emails():
     try:
         # Connect to the IMAP server
-        imap_server = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT)
-        imap_server.login(GMAIL_USERNAME, GMAIL_PASSWORD)
-        imap_server.select("INBOX")
+        imap_serv = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT)
+        imap_serv.login(username, password)
+        imap_serv.select("INBOX")
 
-        # Search for unread emails
-        _, data = imap_server.search(None, "UNSEEN")
+        #unread emails
+        _, data = imap_serv.search(None, "UNSEEN")
         email_ids = data[0].split()
 
         if len(email_ids) == 0:
             print("No new mails")
             return
 
-        # Loop through the email IDs
+        #email IDs
         for email_id in email_ids:
             if email_id not in replied_emails:
-                # Fetch the email
-                _, data = imap_server.fetch(email_id, "(RFC822)")
-                _, message_data = data[0]
-                message = email.message_from_bytes(message_data)
+                _, data = imap_serv.fetch(email_id, "(RFC822)")
+                _, mssg_data = data[0]
+                mssg = email.message_from_bytes(mssg_data)
+                # not to repeat replies
+                if not has_prior_replies(imap_serv, mssg):
+                    reply_mssg = create_reply_message(mssg)
+                    send_reply(reply_mssg)
 
-                # Check if the email has no prior replies
-                if not has_prior_replies(imap_server, message):
-                    # Reply to the email
-                    reply_message = create_reply_message(message)
-                    send_reply(reply_message)
+                    # label addition
+                    add_label_and_move_email(imap_serv, email_id)
 
-                    # Add label and move the email to the labeled folder
-                    add_label_and_move_email(imap_server, email_id)
-
-                    # Mark the email as replied
                     replied_emails.add(email_id)
             else:
                     print("Already replied to"+str(email_id.decode()))
 
-        # Close the IMAP connection
-        imap_server.close()
-        imap_server.logout()
-
+        imap_serv.close()
+        imap_serv.logout()
+    #error handling
     except imaplib.IMAP4.error as e:
-        # Handle the IMAP error
         print("IMAP error occurred:", e)
         traceback.print_exc()
 
     except Exception as e:
-        # Handle any other exception
         print("An error occurred:", e)
         traceback.print_exc()
 
 
-def has_prior_replies(imap_server, message):
-    if not label_exists(imap_server, "Replied"):
+def has_prior_replies(imap_serv, mssg):
+    if not label_exists(imap_serv, "Replied"):
         return False
 
-    _, data = imap_server.search(None, 'X-GM-LABELS "Replied"')
+    _, data = imap_serv.search(None, 'X-GM-LABELS "Replied"')
     email_ids = data[0].split()
-    current_email_id = message["Message-ID"]
+    current_email_id = mssg["Message-ID"]
 
     if current_email_id in email_ids:
         return True
@@ -80,9 +73,10 @@ def has_prior_replies(imap_server, message):
         return False
 
 
-def label_exists(imap_server, label):
+def label_exists(imap_serv, label):
+    #checking the label
     try:
-        _, data = imap_server.list()
+        _, data = imap_serv.list()
         if data is None:
             return False
         for line in data:
@@ -94,33 +88,33 @@ def label_exists(imap_server, label):
     return False
 
 
-def create_reply_message(message):
-    reply_message = email.message.EmailMessage()
-    reply_message["Subject"] = "Re: " + message["Subject"]
-    reply_message["From"] = GMAIL_USERNAME
-    reply_message["To"] = message["From"]
-    reply_message.set_content("I am currently out of the office and will be back on [date]. I will get back to you as soon as possible.")
-    return reply_message
+def create_reply_message(mssg):
+    reply_mssg = email.mssg.EmailMessage()
+    reply_mssg["Subject"] = "Re: " + mssg["Subject"]
+    reply_mssg["From"] = username
+    reply_mssg["To"] = mssg["From"]
+    reply_mssg.set_content("I am currently out of the office and will be back on [date]. I will get back to you as soon as possible.")
+    return reply_mssg
 
 
-def send_reply(reply_message):
-    # Send the reply message using SMTP
+def send_reply(reply_mssg):
+    # SMTP
     smtp_server = smtplib.SMTP("smtp.gmail.com", 587)
     smtp_server.starttls()
-    smtp_server.login(GMAIL_USERNAME, GMAIL_PASSWORD)
-    smtp_server.send_message(reply_message)
+    smtp_server.login(username, password)
+    smtp_server.send_message(reply_mssg)
     smtp_server.quit()
 
 
-def add_label_and_move_email(imap_server, email_id):
-    # Add a label to the email
-    imap_server.store(email_id, "+X-GM-LABELS", "Replied")
+def add_label_and_move_email(imap_serv, email_id):
+    #additing label
+    imap_serv.store(email_id, "+X-GM-LABELS", "Replied")
     print("Label added")
-    # Move the email to the labeled folder
-    imap_server.copy(email_id, "Replied")
+    # Move the email
+    imap_serv.copy(email_id, "Replied")
     print("Message moved")
-    imap_server.store(email_id, "+FLAGS", "\\Deleted")
-    imap_server.expunge()
+    imap_serv.store(email_id, "+FLAGS", "\\Deleted")
+    imap_serv.expunge()
 
 
 if __name__ == "__main__":
@@ -128,9 +122,8 @@ if __name__ == "__main__":
         # Check for new emails
         check_new_emails()
         print("---One cycle completed---")
-        # Generate a random interval for the next check
-        interval = 20
+        interval = random.randint(min, min)
         print("----Sleeping-----")
-        # Wait for the next check
+        # Sleep for a while
         time.sleep(interval)
         print("Next cycle")
