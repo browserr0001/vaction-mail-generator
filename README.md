@@ -8,3 +8,6 @@ Python 3.11<br />
 imaplib<br />
 smtplib<br />
 pip install if not available<br />
+# Process
+First install all the essentials as mentioned above<br />
+Next optain the google app key - <a>google.com</a>
