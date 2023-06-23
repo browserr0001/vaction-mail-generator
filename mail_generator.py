@@ -5,8 +5,8 @@ import imaplib
 import email
 import traceback
 
-username = "test0912mail@gmail.com"
-password = "kwvorykgwhylcmqe"
+username = "your_mail"
+password = "google_app_key"
 IMAP_HOST = "imap.gmail.com"
 IMAP_PORT = 993
 min = 45
